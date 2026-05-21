@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package ai_trade.sentiment_data;
+
+// Sentiment signal produced by the NLP/LLM agent after processing news headlines
+// via NewsData APIs and scoring them with HuggingFace LLM (DeepSeek).
+message NewsSentiment {
+  string symbol                  = 1;  // NSE instrument symbol this sentiment applies to
+  int64  timestamp_ms            = 2;  // Unix epoch milliseconds — when sentiment was computed
+  string headline                = 3;  // Original news headline that was analyzed
+  int32  claude_conviction_score = 4;  // Claude's conviction score (1-100, higher = more bullish)
+  string reasoning_snippet       = 5;  // Short excerpt of Claude's reasoning chain
+}

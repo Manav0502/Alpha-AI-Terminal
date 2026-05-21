@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package ai_trade.technical_data;
+
+// Technical analysis signal produced by the quantitative math agent.
+// Contains computed indicators derived from raw Tick data.
+message TechSignal {
+  string symbol                     = 1;  // NSE instrument symbol
+  int64  timestamp_ms               = 2;  // Unix epoch milliseconds — when signal was computed
+  double rsi_value                  = 3;  // Relative Strength Index (0.0 - 100.0)
+  double vwap_distance              = 4;  // Distance from VWAP as percentage (positive = above, negative = below)
+  int32  technical_conviction_score = 5;  // Technical conviction score (1-100, higher = stronger buy signal)
+}
