@@ -1,0 +1,44 @@
+[package]
+name = "load-tester"
+version = "0.1.0"
+edition = "2021"
+description = "High-frequency Kafka load tester: generates synthetic OHLCCandle data at 100 candles/sec with periodic 5% anomaly injection to stress-test the Predictive Agent, Quant-RAG Gemini engine, and Tauri Edge Terminal concurrently."
+
+# ===========================================================================
+# Runtime Dependencies
+# ===========================================================================
+[dependencies]
+
+# Async runtime — full feature set (io, time, sync, macros, rt-multi-thread)
+tokio = { version = "1", features = ["full"] }
+
+# Kafka producer — builds librdkafka from source via CMake
+rdkafka = { version = "0.36", features = ["cmake-build"] }
+
+# Protobuf serialization — encodes synthetic OHLCCandle messages
+prost = "0.12"
+
+# Random number generation — for synthetic price walks and anomaly injection
+rand = "0.8"
+
+# Environment variable loader — reads .env file at runtime
+dotenvy = "0.15"
+
+# Structured logging
+log = "0.4"
+env_logger = "0.11"
+
+# CLI argument parsing
+clap = { version = "4", features = ["derive"] }
+
+# ===========================================================================
+# Build-time Dependencies (proto compilation)
+# ===========================================================================
+[build-dependencies]
+
+# Compiles .proto files in shared_protos/ → Rust structs during `cargo build`
+prost-build = "0.12"
+
+# Ships a precompiled protoc binary — eliminates the requirement for a system
+# protoc install. Sets PROTOC env var in build.rs so prost-build finds it.
+protoc-bin-vendored = "3"
