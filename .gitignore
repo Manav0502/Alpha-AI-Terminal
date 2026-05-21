@@ -1,0 +1,83 @@
+# ===========================
+# AI-Trade Monorepo .gitignore
+# ===========================
+
+# ----- Rust -----
+target/
+**/*.rs.bk
+Cargo.lock
+*.pdb
+
+# ----- Node.js / Next.js -----
+node_modules/
+.next/
+out/
+.turbo/
+dist/
+build/
+*.tsbuildinfo
+.npm
+.yarn/cache
+.yarn/unplugged
+.yarn/install-state.gz
+.pnp.*
+
+# ----- Go -----
+bin/
+vendor/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# ----- Python -----
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+*.egg-info/
+*.egg
+
+# ----- Environment & Secrets -----
+.env
+.env.local
+.env.*.local
+*.key
+*.crt
+
+# ----- Docker -----
+docker-volumes/
+*.tar
+docker-compose.override.yml
+
+# ----- IDE / Editor -----
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ----- Logs & Temp -----
+logs/
+*.log
+tmp/
+temp/
+*.tmp
+
+# ----- OS -----
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+
+# ----- Proto generated -----
+*_pb2.py
+*_pb2_grpc.py
+*.pb.go
