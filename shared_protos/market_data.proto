@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+package ai_trade.market_data;
+
+// Real-time market tick from Zerodha Kite WebSocket.
+// This is the foundational data unit flowing from Rust ingestion → Kafka → all consumers.
+message Tick {
+  string symbol           = 1;  // NSE instrument symbol (e.g., "RELIANCE", "NIFTY 50")
+  int64  timestamp_ms     = 2;  // Unix epoch milliseconds — exchange timestamp
+  double last_traded_price = 3;  // LTP in INR
+  int32  volume           = 4;  // Cumulative traded volume at this tick
+  double best_bid         = 5;  // Top-of-book bid price
+  double best_ask         = 6;  // Top-of-book ask price
+  uint32 instrument_token = 7;
+  double open             = 8;
+  double high             = 9;
+  double low              = 10;
+  double close            = 11;
+}
+
+message OHLCCandle {
+    string symbol = 1;
+    uint64 start_timestamp_ms = 2;
+    uint64 end_timestamp_ms = 3;
+    double open = 4;
+    double high = 5;
+    double low = 6;
+    double close = 7;
+    uint64 volume = 8;
+}
