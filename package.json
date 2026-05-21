@@ -1,0 +1,17 @@
+{
+  "name": "ai-trader",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "test:rust": "cd frontend/src-tauri && cargo test -- --nocapture",
+    "test:e2e": "cd frontend && npx cross-env ALPHA_TEST_MODE=1 npx playwright test",
+    "test:all": "npm run test:rust && npm run test:e2e"
+  },
+  "dependencies": {
+    "axios": "^1.16.0"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "cross-env": "^7.0.3"
+  }
+}
