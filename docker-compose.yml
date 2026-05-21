@@ -1,0 +1,175 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Alpha Suite V2 — Production Docker Compose
+# ──────────────────────────────────────────────────────────────────────────────
+# Usage:
+#   docker-compose up -d --build          # Build and start all services
+#   docker-compose logs -f ingestion      # Tail a specific service
+#   docker-compose down -v                # Stop all and remove volumes
+#
+# Prerequisites:
+#   - Docker Engine 24+ / Docker Desktop
+#   - .env file at monorepo root with required keys (see PRODUCTION_SETUP.md)
+# ──────────────────────────────────────────────────────────────────────────────
+
+services:
+
+  # ── Infrastructure: Kafka (via Redpanda) ──────────────────────────────────
+  redpanda:
+    image: redpandadata/redpanda:latest
+    container_name: alphasuite-redpanda
+    command:
+      - redpanda start
+      - --smp 1
+      - --memory 1G
+      - --reserve-memory 0M
+      - --overprovisioned
+      - --node-id 0
+      - --kafka-addr PLAINTEXT://0.0.0.0:29092,OUTSIDE://0.0.0.0:19092
+      - --advertise-kafka-addr PLAINTEXT://redpanda:29092,OUTSIDE://localhost:19092
+      - --set auto_create_topics_enabled=true
+    ports:
+      - "19092:19092"   # External Kafka API (host access)
+      - "29092:29092"   # Internal Kafka API (inter-container)
+    healthcheck:
+      test: ["CMD-SHELL", "rpk cluster health | grep -q 'HEALTHY'"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # ── Infrastructure: QuestDB (Time-Series Archive) ─────────────────────────
+  questdb:
+    image: questdb/questdb:latest
+    container_name: alphasuite-questdb
+    ports:
+      - "9000:9000"     # Web Console
+      - "8812:8812"     # PostgreSQL wire protocol
+      - "9009:9009"     # InfluxDB line protocol
+    volumes:
+      - questdb_data:/var/lib/questdb
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9000/status || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Infrastructure: PostgreSQL (Auth DB) ──────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: alphasuite-postgres
+    environment:
+      POSTGRES_DB: ai_trade_auth
+      POSTGRES_USER: auth_admin
+      POSTGRES_PASSWORD: ${POSTGRES_AUTH_PASSWORD:-auth_secret_dev}
+    ports:
+      - "5890:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./auth/migrations:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U auth_admin -d ai_trade_auth"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ── Infrastructure: Redis (Session Cache) ─────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: alphasuite-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # ── Service: Ingestion (Kite WS → Kafka) ─────────────────────────────────
+  ingestion:
+    build:
+      context: .
+      dockerfile: ingestion/Dockerfile
+    container_name: alphasuite-ingestion
+    env_file: .env
+    environment:
+      KAFKA_BROKERS: redpanda:29092
+      QUESTDB_URL: postgresql://questdb:8812/qdb
+      RUST_LOG: info
+    depends_on:
+      redpanda:
+        condition: service_healthy
+      questdb:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ── Service: Alpha Terminal (OHLC Engine → WS 8081) ───────────────────────
+  alpha-terminal:
+    build:
+      context: .
+      dockerfile: alpha-terminal/Dockerfile
+    container_name: alphasuite-alpha-terminal
+    env_file: .env
+    environment:
+      KAFKA_BROKERS: redpanda:29092
+      RUST_LOG: info
+    ports:
+      - "8081:8081"
+    depends_on:
+      redpanda:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ── Service: Aggregator (Decision Engine → WS 8080) ──────────────────────
+  aggregator:
+    build:
+      context: .
+      dockerfile: aggregator/Dockerfile
+    container_name: alphasuite-aggregator
+    env_file: .env
+    environment:
+      KAFKA_BROKERS: redpanda:29092
+      RUST_LOG: info
+    ports:
+      - "8080:8080"
+    depends_on:
+      redpanda:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ── Service: Predictive Agent (Ghost Line → WS 8082) ─────────────────────
+  predictive-agent:
+    build:
+      context: .
+      dockerfile: agents/predictive/Dockerfile
+    container_name: alphasuite-predictive
+    env_file: .env
+    environment:
+      KAFKA_BROKERS: redpanda:29092
+      RUST_LOG: info
+    ports:
+      - "8082:8082"
+    depends_on:
+      redpanda:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ── Service: Quant-RAG Agent (DeepSeek LLM → WS 8083) ────────────────────
+  quant-rag-agent:
+    build:
+      context: .
+      dockerfile: agents/quant-rag/Dockerfile
+    container_name: alphasuite-quant-rag
+    env_file: .env
+    environment:
+      KAFKA_BROKERS: redpanda:29092
+      RUST_LOG: info
+    ports:
+      - "8083:8083"
+    depends_on:
+      redpanda:
+        condition: service_healthy
+    restart: unless-stopped
+
+# ── Persistent Volumes ──────────────────────────────────────────────────────
+volumes:
+  questdb_data:
+  pgdata:
