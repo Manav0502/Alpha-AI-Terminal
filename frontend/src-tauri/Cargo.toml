@@ -1,0 +1,54 @@
+[package]
+name = "app"
+version = "0.1.0"
+description = "A Tauri App"
+authors = ["you"]
+license = ""
+repository = ""
+edition = "2021"
+rust-version = "1.77.2"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+name = "app_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2.6.0", features = [] }
+
+[dependencies]
+serde_json = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+log = "0.4"
+tauri = { version = "2.11.0", features = [] }
+tauri-plugin-log = "2"
+tauri-plugin-stronghold = "2.0.0"
+argon2 = "0.5"
+tokio = { version = "1", features = ["full"] }
+tokio-tungstenite = "0.24"
+futures-util = "0.3"
+url = "2.5.0"
+
+# ── Historical Pipeline (Cold-Storage Ingestion) ────────────────────────
+sqlx = { version = "0.8", features = ["postgres", "runtime-tokio-rustls", "chrono"] }
+bincode = "1"
+chrono = { version = "0.4", features = ["serde"] }
+reqwest = { version = "0.12", features = ["json", "rustls-tls"], default-features = false }
+dotenvy = "0.15"
+urlencoding = "2.1"
+
+# ── Local Workspace Persistence (SQLite) ────────────────────────────────
+# rusqlite 0.31 uses libsqlite3-sys 0.28 — same as sqlx, avoiding link conflicts.
+rusqlite = { version = "0.31", features = ["bundled"] }
+
+# ── Alpha Crucible — Audit Logger Support ───────────────────────────────
+once_cell = "1.19"
+
+# ══════════════════════════════════════════════════════════════════════════
+# Alpha Crucible — API Contract Testing
+# ══════════════════════════════════════════════════════════════════════════
+[dev-dependencies]
+mockito = "1.0"
+tokio = { version = "1", features = ["full", "test-util", "macros", "rt-multi-thread"] }
+serde_json = "1.0"
