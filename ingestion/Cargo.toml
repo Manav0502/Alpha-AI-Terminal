@@ -1,0 +1,74 @@
+[package]
+name = "ingestion"
+version = "0.1.0"
+edition = "2021"
+description = "High-performance Rust service: Kite WebSocket → Protobuf → Kafka → QuestDB"
+
+# ===========================================================================
+# Runtime Dependencies
+# ===========================================================================
+[dependencies]
+
+# Async runtime — full feature set (io, time, sync, macros, rt-multi-thread)
+tokio = { version = "1", features = ["full"] }
+
+# WebSocket transport — raw + async wrappers
+tungstenite = "0.20"
+tokio-tungstenite = { version = "0.20", features = ["native-tls"] }
+
+# Kafka producer — builds librdkafka from source via CMake.
+# Gated behind the 'kafka' feature so `cargo check --no-default-features` works
+# on Windows without requiring CMake. Enabled by default for production.
+rdkafka = { version = "0.36", features = ["cmake-build"], optional = true }
+
+# Protobuf serialization — encodes/decodes Tick, TechSignal, etc.
+prost = "0.12"
+
+# HTTP client — used for Kite API auth token generation
+reqwest = { version = "0.11", features = ["json"] }
+
+# Environment variable loader — reads .env file at runtime
+dotenvy = "0.15"
+
+# QuestDB ingestion via Postgres wire protocol
+sqlx = { version = "0.8", features = ["postgres", "runtime-tokio-rustls"] }
+
+# Serialization — Kite REST API responses + subscription messages
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Big-endian binary reading for Kite WebSocket binary tick protocol
+byteorder = "1"
+
+# Structured logging
+log = "0.4"
+env_logger = "0.10"
+
+# Async stream combinators (StreamExt, SinkExt) for tokio-tungstenite
+futures-util = "0.3"
+
+# SHA-256 checksum for Kite session token generation
+sha2 = "0.10"
+hex = "0.4"
+
+# ===========================================================================
+# Build-time Dependencies (proto compilation)
+# ===========================================================================
+[build-dependencies]
+
+# Compiles .proto files in shared_protos/ → Rust structs during `cargo build`
+prost-build = "0.12"
+
+# Ships a precompiled protoc binary — eliminates the need for a system protoc install.
+# Sets PROTOC env var in build.rs so prost-build finds it automatically.
+protoc-bin-vendored = "3"
+
+# ===========================================================================
+# Feature Flags
+# ===========================================================================
+[features]
+# 'kafka' is on by default — production builds compile rdkafka via CMake.
+# Use `cargo check --no-default-features` on Windows (no CMake) to type-check
+# all modules except the Kafka producer.
+default = ["kafka"]
+kafka = ["dep:rdkafka"]
