@@ -1,0 +1,80 @@
+[package]
+name = "aggregator"
+version = "0.1.0"
+edition = "2021"
+description = "Central decision engine: consumes TechSignal + NewsSentiment from Kafka, fuses into AggregatedDecision"
+
+# ===========================================================================
+# Runtime Dependencies
+# ===========================================================================
+[dependencies]
+
+# Async runtime — full feature set (io, time, sync, macros, rt-multi-thread)
+tokio = { version = "1", features = ["full"] }
+
+# Kafka consumer — builds librdkafka from source via CMake.
+# Gated behind the 'kafka' feature so `cargo check --no-default-features` works
+# on Windows without requiring CMake. Enabled by default for production.
+rdkafka = { version = "0.36", features = ["cmake-build"], optional = true }
+
+# Protobuf deserialization — decodes TechSignal, NewsSentiment; encodes AggregatedDecision
+prost = "0.12"
+
+# Environment variable loader — reads .env file at runtime
+dotenvy = "0.15"
+
+# Structured logging
+log = "0.4"
+env_logger = "0.10"
+
+# Async stream combinators — StreamExt for iterating rdkafka::StreamConsumer
+futures-util = "0.3"
+
+# JSON serialization — converts AggregatedDecision to human-readable JSON
+# for WebSocket broadcast to the Next.js frontend (vs raw Protobuf bytes).
+serde_json = "1.0"
+
+# WebSocket server — upgrades TCP streams to WS for real-time decision push.
+tokio-tungstenite = "0.20"
+
+# HTTP framework — lightweight REST API for Kite instrument search + quote proxy
+axum = "0.7"
+
+# HTTP client — proxies requests to Kite Connect REST API
+reqwest = { version = "0.11", features = ["json"] }
+
+# Serialization — JSON request/response types for the REST API
+serde = { version = "1", features = ["derive"] }
+
+# CORS support — allows frontend to call the REST API directly
+tower-http = { version = "0.5", features = ["cors"] }
+tower = "0.4"
+
+# URL encoding/decoding for query parameter handling
+urlencoding = "2"
+
+# Date/time handling — used for Kite historical API date parsing and range defaults
+chrono = "0.4"
+
+
+# ===========================================================================
+# Build-time Dependencies (proto compilation)
+# ===========================================================================
+[build-dependencies]
+
+# Compiles .proto files in shared_protos/ → Rust structs during `cargo build`
+prost-build = "0.12"
+
+# Ships a precompiled protoc binary — eliminates the requirement for a system
+# protoc install. Sets PROTOC env var in build.rs so prost-build finds it.
+protoc-bin-vendored = "3"
+
+# ===========================================================================
+# Feature Flags
+# ===========================================================================
+[features]
+# 'kafka' is on by default — production builds compile rdkafka via CMake.
+# Use `cargo check --no-default-features` on Windows (no CMake) to type-check
+# all non-Kafka modules without triggering the CMake build.
+default = ["kafka"]
+kafka = ["dep:rdkafka"]
